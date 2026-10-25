@@ -1,4 +1,4 @@
-name: Build Android App
+name: Build Android App & Upload APK
 
 on:
   push:
@@ -8,20 +8,12 @@ on:
 
 jobs:
   build:
-    name: Diagnostic Build Check
+    name: Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Diagnostic - List Workspace Files
-        run: |
-          echo "=== 1. Listing all folders and files in the repository (up to depth 3) ==="
-          find . -maxdepth 3 -not -path '*/.*'
-          
-          echo "=== 2. Searching for any file containing 'gradle' or configuration scripts ==="
-          find . -name "*gradle*" -o -name "*.xml" -o -name "*.properties"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -29,6 +21,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build Stub
-        run: |
-          echo "Review the file list above from the GitHub Actions log to see where your project files reside."
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x gradlew
+        # If your project is in a subfolder, change '.' to that folder name (e.g., 'android')
+        working-directory: . 
+
+      - name: Build Debug APK with Gradle
+        run: ./gradlew assembleDebug --no-daemon
+        # Must match the working-directory above
+        working-directory: . 
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: |
+            **/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
