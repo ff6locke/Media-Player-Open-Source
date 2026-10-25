@@ -15,6 +15,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Debug - Find gradlew location
+        run: |
+          echo "=== Root Files ==="
+          ls -la
+          echo "=== Searching for gradlew ==="
+          find . -name "gradlew"
+
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
@@ -23,8 +30,8 @@ jobs:
 
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x gradlew
-        working-directory: YOUR_ACTUAL_FOLDER_NAME   # <-- Replace this with your actual subfolder name (e.g., 'android')
+        working-directory: . # <-- Update this based on the search logs above
 
       - name: Build with Gradle
         run: ./gradlew assembleDebug --no-daemon
-        working-directory: YOUR_ACTUAL_FOLDER_NAME   # <-- Must match the exact same folder name
+        working-directory: . # <-- Must match the working-directory above
