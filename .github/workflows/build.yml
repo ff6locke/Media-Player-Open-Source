@@ -23,8 +23,8 @@ jobs:
 
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x gradlew
-        working-directory: your-subfolder-name   # <-- CHANGE THIS to your subfolder (e.g., 'android' or 'app')
+        working-directory: YOUR_ACTUAL_FOLDER_NAME   # <-- Replace this with your actual subfolder name (e.g., 'android')
 
       - name: Build with Gradle
         run: ./gradlew assembleDebug --no-daemon
-        working-directory: your-subfolder-name   # <-- CHANGE THIS to match the same subfolder
+        working-directory: YOUR_ACTUAL_FOLDER_NAME   # <-- Must match the exact same folder name
