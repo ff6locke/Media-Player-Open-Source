@@ -1,4 +1,4 @@
-name: Build Android App
+name: Build Android App from Zip
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Unzip and Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
@@ -21,33 +21,52 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Check Files and Build
+      - name: Unzip Project Archive
         run: |
-          echo "=== Files present in repository root ==="
-          ls -la
+          echo "Extracting TVBoxGoogleTV.zip..."
+          mkdir -p project_source
+          unzip -q TVBoxGoogleTV.zip -d project_source
+          echo "=== Extracted Contents ==="
+          ls -la project_source
+
+      - name: Locate Project and Build with Gradle
+        run: |
+          cd project_source
           
+          # Automatically find the directory containing Gradle build/settings files
+          SETTINGS_FILE=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
+          
+          if [ -n "$SETTINGS_FILE" ]; then
+            PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+          else
+            BUILD_FILE=$(find . -name "build.gradle" -o -name "build.gradle.kts" | head -n 1)
+            if [ -n "$BUILD_FILE" ]; then
+              PROJECT_DIR=$(dirname "$BUILD_FILE")
+            else
+              PROJECT_DIR="."
+            fi
+          fi
+          
+          echo "Found project folder at: ./$PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          
+          # Check for gradlew or generate it
           if [ -f "gradlew" ]; then
-            echo "Found gradlew wrapper!"
+            echo "Found gradlew wrapper. Executing build..."
             chmod +x gradlew
             ./gradlew assembleDebug --no-daemon
-            
-          elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ] || [ -f "settings.gradle" ] || [ -f "settings.gradle.kts" ]; then
-            echo "Gradle files found, but gradlew is missing. Generating wrapper..."
+          else
+            echo "gradlew not found. Generating gradle wrapper..."
             gradle wrapper
             chmod +x gradlew
             ./gradlew assembleDebug --no-daemon
-            
-          else
-            echo "=========================================================="
-            echo "ERROR: No Android project files found in this repository!"
-            echo "Your local project code has not been pushed to GitHub yet."
-            echo "=========================================================="
-            exit 1
           fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: ignore
+          path: |
+            **/build/outputs/apk/debug/*.apk
+            project_source/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
