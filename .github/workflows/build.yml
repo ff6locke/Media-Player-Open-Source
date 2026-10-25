@@ -1,4 +1,4 @@
-name: Build Android App & Upload APK
+name: Build Android App
 
 on:
   push:
@@ -23,19 +23,13 @@ jobs:
 
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x gradlew
-        # If your project is in a subfolder, change '.' to that folder name (e.g., 'android')
-        working-directory: . 
 
       - name: Build Debug APK with Gradle
         run: ./gradlew assembleDebug --no-daemon
-        # Must match the working-directory above
-        working-directory: . 
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: |
-            **/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
