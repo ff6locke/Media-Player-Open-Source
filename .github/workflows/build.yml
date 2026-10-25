@@ -21,33 +21,41 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Auto-Detect Project Directory and Build
+      - name: Safe Auto-Detect Project Directory and Build
         run: |
           echo "Searching for Gradle build files in the repository..."
           
-          # Find the directory containing settings.gradle or build.gradle
-          PROJECT_DIR=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" -o -name "build.gradle" -o -name "build.gradle.kts" | head -n 1 | xargs dirname)
+          # Safely find settings file first
+          SETTINGS_FILE=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
           
-          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
-            if [ -f "settings.gradle" ] || [ -f "build.gradle" ]; then
-              PROJECT_DIR="."
+          if [ -n "$SETTINGS_FILE" ]; then
+            PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+          else
+            # Fallback to build file if settings file isn't found
+            BUILD_FILE=$(find . -name "build.gradle" -o -name "build.gradle.kts" | head -n 1)
+            if [ -n "$BUILD_FILE" ]; then
+              PROJECT_DIR=$(dirname "$BUILD_FILE")
             else
-              echo "Error: Could not find any Gradle project files (settings.gradle/build.gradle) in the repository."
-              exit 1
+              PROJECT_DIR="."
             fi
           fi
           
-          echo "Successfully found project directory at: ./$PROJECT_DIR"
+          echo "Successfully determined project directory: ./$PROJECT_DIR"
           
-          # Move into the project directory
+          # Move into the project directory safely
           cd "$PROJECT_DIR"
           
-          # Check for gradlew and build
+          # Locate and execute Gradle build wrapper
           if [ -f "gradlew" ]; then
-            echo "Found gradlew wrapper. Executing build..."
+            echo "Found local gradlew wrapper. Executing build..."
             chmod +x gradlew
             ./gradlew assembleDebug --no-daemon
+          elif [ -f "../gradlew" ]; then
+            echo "Found gradlew wrapper in parent directory..."
+            cd ..
+            chmod +x gradlew
+            ./gradlew :app:assembleDebug --no-daemon
           else
-            echo "gradlew wrapper not found in this folder. Running global gradle..."
+            echo "gradlew wrapper not found. Attempting system gradle..."
             gradle assembleDebug --no-daemon
           fi
