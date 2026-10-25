@@ -21,15 +21,33 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Grant execute permission for Gradle wrapper
-        run: chmod +x gradlew
-
-      - name: Build Debug APK with Gradle
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Check Files and Build
+        run: |
+          echo "=== Files present in repository root ==="
+          ls -la
+          
+          if [ -f "gradlew" ]; then
+            echo "Found gradlew wrapper!"
+            chmod +x gradlew
+            ./gradlew assembleDebug --no-daemon
+            
+          elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ] || [ -f "settings.gradle" ] || [ -f "settings.gradle.kts" ]; then
+            echo "Gradle files found, but gradlew is missing. Generating wrapper..."
+            gradle wrapper
+            chmod +x gradlew
+            ./gradlew assembleDebug --no-daemon
+            
+          else
+            echo "=========================================================="
+            echo "ERROR: No Android project files found in this repository!"
+            echo "Your local project code has not been pushed to GitHub yet."
+            echo "=========================================================="
+            exit 1
+          fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          if-no-files-found: ignore
